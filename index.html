@@ -22,6 +22,8 @@
 <script src="p5.min.js"></script>
 <script src="cartesian.js"></script>
 <script src="complex.min.js"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
 
   let plot;
@@ -29,12 +31,14 @@
     document.getElementById('plotContainer').style.height = window.innerHeight + 'px';
     document.getElementById('plotContainer').style.width = window.innerWidth + 'px';
 
+    let dragA = false;
+    let dragC = false;
     let Ax = Math.random();
     let Ay = Math.random();
     let Cx = 0;
     let Cy = 0;
     let boundrySet = [];
-    let maxIterations = 50;
+    let maxIterations = 100;
     plot = new Cartesian({
       parentId: 'plotContainer',
       max: 1.2,
@@ -74,17 +78,34 @@
         Math.pow(absMouse.y - absC.y, 2)
       );
 
+      /**
+       * POINT DRAG HANDLERS
+       */
       if (dA <= 15 && plot.getMouseState() === 'DOWN') {
+        dragA = true;
+      }
+      if (plot.getMouseState() === 'UP') {
+        dragA = false;
+      }
+      if (dragA) {
         Ax = mouseX;
         Ay = mouseY;
       }
-
       if (dC <= 15 && plot.getMouseState() === 'DOWN') {
+        dragC = true;
+      }
+      if (plot.getMouseState() === 'UP') {
+        dragC = false;
+      }
+      if (dragC) {
         Cx = mouseX;
         Cy = mouseY;
       }
 
       let z = new Complex(Ax, Ay);
+
+      let draw = z.add(Cx, Cy);
+      drawEquation(draw.re, draw.im);
 
       for (let i = 0; i < maxIterations; i++) {
         let z1 = z.pow(2).add(Cx, Cy);
@@ -95,11 +116,56 @@
         s.ellipse(r0.x, r0.y, 8);
         z = z1;
       }
+
+      s.fill(100);
+      s.stroke(100);
+      let boundary = getBoundary(plot.max, Cx, Cy);
+      for (let i = 0; i < boundary.length; i++) {
+        //const transform = x => 1 / x;
+        //s.fill(transform(boundary[i].value) * 200);
+        let abs = plot.toAbsoluteCoords(boundary[i].x, boundary[i].y);
+        s.ellipse(abs.x, abs.y, 5);
+      }
+      s.fill(0);
+      s.stroke(0);
     })
   };
 
-  function calculateBoundry() {
+  function drawEquation (a, b) {
+    let textBox = document.getElementById('equationBox');
+    if (textBox !== null) {
+      document.getElementById('plotContainer').removeChild(textBox);
+    }
+    let box = document.createElement('span');
+    let text = document.createTextNode(`Z(n+1) = ${a}*n + ${b}`);
+    box.setAttribute("id", "equationBox");
+    box.appendChild(text);
+    box.style.position = 'fixed';
+    box.style.top = '10px';
+    box.style.left = '10px';
+    box.style.color = 'red';
+    box.style.fontWeight = 'bold';
+    document.getElementById('plotContainer').appendChild(box);
+  }
 
+  function getBoundary(max, Cx, Cy) {
+    const step = 0.03;
+    const limit = 5;
+    const iterations = 10;
+    let boundaryPoints = [];
+    for (let x = -max.x; x < max.x; x += step) {
+      for (let y = -max.y; y < max.y; y += step) {
+        let z = new Complex(x, y);
+        for (let i = 0; i < iterations; i++) {
+          z = z.pow(2).add(Cx, Cy);
+          if (z.re > limit || z.im > limit) {
+            boundaryPoints.push({x, y, value: z.re + z.im});
+            break;
+          }
+        }
+      }
+    }
+    return boundaryPoints;
   }
 
 </script>
