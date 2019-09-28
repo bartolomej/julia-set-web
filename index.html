@@ -1,0 +1,107 @@
+<!--suppress JSSuspiciousNameCombination -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>p5 cartesian example</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+        #plotContainer {
+            display: flex;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+<div id="plotContainer">
+
+</div>
+
+<script src="p5.min.js"></script>
+<script src="cartesian.js"></script>
+<script src="complex.min.js"></script>
+<script>
+
+  let plot;
+  window.onload = function () {
+    document.getElementById('plotContainer').style.height = window.innerHeight + 'px';
+    document.getElementById('plotContainer').style.width = window.innerWidth + 'px';
+
+    let Ax = Math.random();
+    let Ay = Math.random();
+    let Cx = 0;
+    let Cy = 0;
+    let boundrySet = [];
+    let maxIterations = 50;
+    plot = new Cartesian({
+      parentId: 'plotContainer',
+      max: 1.2,
+      interval: 100,
+      drawLines: true,
+      drawNumbers: true,
+      showAbscissa: true,
+      showOrdinate: true,
+      showMouseCoords: false
+    });
+    plot.init(p5, s => {
+      const round = n => Math.round(n * 100) / 100;
+
+      let mouseX = plot.relativeMousePos.x;
+      let mouseY = plot.relativeMousePos.y;
+
+      let absA = plot.toAbsoluteCoords(Ax, Ay);
+      let absC = plot.toAbsoluteCoords(Cx, Cy);
+      let absMouse = plot.toAbsoluteCoords(mouseX, mouseY);
+
+      s.fill(0);
+      s.textSize(15);
+      s.text(`A (${round(Ax)}, ${round(Ay)})`, absA.x + 10, absA.y + 10);
+      s.ellipse(absA.x, absA.y, 15);
+
+      s.text(`C (${round(Cx)}, ${round(Cy)})`, absC.x + 10, absC.y + 10);
+      s.ellipse(absC.x, absC.y, 15);
+
+
+      let dA = Math.sqrt(
+        Math.pow(absMouse.x - absA.x, 2) +
+        Math.pow(absMouse.y - absA.y, 2)
+      );
+
+      let dC = Math.sqrt(
+        Math.pow(absMouse.x - absC.x, 2) +
+        Math.pow(absMouse.y - absC.y, 2)
+      );
+
+      if (dA <= 15 && plot.getMouseState() === 'DOWN') {
+        Ax = mouseX;
+        Ay = mouseY;
+      }
+
+      if (dC <= 15 && plot.getMouseState() === 'DOWN') {
+        Cx = mouseX;
+        Cy = mouseY;
+      }
+
+      let z = new Complex(Ax, Ay);
+
+      for (let i = 0; i < maxIterations; i++) {
+        let z1 = z.pow(2).add(Cx, Cy);
+        let r0 = plot.toAbsoluteCoords(z.re, z.im);
+        let r1 = plot.toAbsoluteCoords(z1.re, z1.im);
+        s.line(r0.x, r0.y, r1.x, r1.y);
+        s.fill(0);
+        s.ellipse(r0.x, r0.y, 8);
+        z = z1;
+      }
+    })
+  };
+
+  function calculateBoundry() {
+
+  }
+
+</script>
+</body>
+</html>
