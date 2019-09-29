@@ -12,9 +12,39 @@
             display: flex;
             flex: 1;
         }
+        #modal h1 {
+            text-align: center;
+            padding: 10px;
+        }
+        #modal p {
+            padding: 5px;
+        }
+        #outputs {
+            padding: 20px;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: white;
+            border: 3px solid black;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
+<div id="modal">
+    <h1>Julia fractal</h1>
+    <p>
+        This is an interactive playground where you can try out how the fractal changes
+        with respect to a hyper parameter <i>c</i>.
+    </p>
+    <p>
+        Fractal is computed with a function
+        \(f_c(z) = {z^2 + c}\)
+    </p>
+</div>
+<div id="outputs">
+
+</div>
 <div id="plotContainer">
 
 </div>
@@ -24,7 +54,15 @@
 <script src="complex.min.js"></script>
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
 <script>
+
+  $("#modal").modal({
+    //fadeDuration: 500,
+    //fadeDelay: 0.50
+  });
 
   let plot;
   window.onload = function () {
@@ -50,7 +88,6 @@
       showMouseCoords: false
     });
     plot.init(p5, s => {
-      const round = n => Math.round(n * 100) / 100;
 
       let mouseX = plot.relativeMousePos.x;
       let mouseY = plot.relativeMousePos.y;
@@ -60,11 +97,12 @@
       let absMouse = plot.toAbsoluteCoords(mouseX, mouseY);
 
       s.fill(0);
+      s.textStyle(s.NORMAL);
       s.textSize(15);
-      s.text(`A (${round(Ax)}, ${round(Ay)})`, absA.x + 10, absA.y + 10);
+      s.text(`${roundNumber(Ax)} + ${roundNumber(Ay)}i`, absA.x + 10, absA.y + 10);
       s.ellipse(absA.x, absA.y, 15);
 
-      s.text(`C (${round(Cx)}, ${round(Cy)})`, absC.x + 10, absC.y + 10);
+      s.text(`${roundNumber(Cx)} + ${roundNumber(Cy)}i`, absC.x + 10, absC.y + 10);
       s.ellipse(absC.x, absC.y, 15);
 
 
@@ -104,8 +142,7 @@
 
       let z = new Complex(Ax, Ay);
 
-      let draw = z.add(Cx, Cy);
-      drawEquation(draw.re, draw.im);
+      drawEquation(Ax, Ay, Cx, Cy);
 
       for (let i = 0; i < maxIterations; i++) {
         let z1 = z.pow(2).add(Cx, Cy);
@@ -121,8 +158,6 @@
       s.stroke(100);
       let boundary = getBoundary(plot.max, Cx, Cy);
       for (let i = 0; i < boundary.length; i++) {
-        //const transform = x => 1 / x;
-        //s.fill(transform(boundary[i].value) * 200);
         let abs = plot.toAbsoluteCoords(boundary[i].x, boundary[i].y);
         s.ellipse(abs.x, abs.y, 5);
       }
@@ -131,25 +166,41 @@
     })
   };
 
-  function drawEquation (a, b) {
-    let textBox = document.getElementById('equationBox');
-    if (textBox !== null) {
-      document.getElementById('plotContainer').removeChild(textBox);
+  function drawEquation (Ax, Ay, Cx, Cy) {
+    let {re, im} = new Complex(Ax, Ay).add(Cx, Cy);
+    remove('equationBox');
+    remove('cParamBox');
+    remove('aParamBox');
+
+    createTextNode('equationBox', `f (z) = ${roundNumber(re)} + ${roundNumber(im)}i`);
+    createTextNode('aParamBox', `A = ${roundNumber(Ax)} + ${roundNumber(Ay)}i`);
+    createTextNode('cParamBox', `c = ${roundNumber(Cx)} + ${roundNumber(Cy)}i`);
+
+    function createTextNode(id, text) {
+      let br = document.createElement('br');
+      br.setAttribute('id', id + '_break');
+      let box = document.createElement('span');
+      let textNode = document.createTextNode(text);
+      box.setAttribute("id", id);
+      box.appendChild(textNode);
+      box.style.fontStyle = 'italic';
+      document.getElementById('outputs').appendChild(box);
+      document.getElementById('outputs').appendChild(br);
     }
-    let box = document.createElement('span');
-    let text = document.createTextNode(`Z(n+1) = ${a}*n + ${b}`);
-    box.setAttribute("id", "equationBox");
-    box.appendChild(text);
-    box.style.position = 'fixed';
-    box.style.top = '10px';
-    box.style.left = '10px';
-    box.style.color = 'red';
-    box.style.fontWeight = 'bold';
-    document.getElementById('plotContainer').appendChild(box);
+    function remove (id) {
+      let node = document.getElementById(id);
+      let br = document.getElementById(id + '_break');
+      if (node !== null) {
+        document.getElementById('outputs').removeChild(node);
+      }
+      if (br !== null) {
+        document.getElementById('outputs').removeChild(br);
+      }
+    }
   }
 
   function getBoundary(max, Cx, Cy) {
-    const step = 0.03;
+    const step = 0.04;
     const limit = 5;
     const iterations = 10;
     let boundaryPoints = [];
@@ -158,7 +209,7 @@
         let z = new Complex(x, y);
         for (let i = 0; i < iterations; i++) {
           z = z.pow(2).add(Cx, Cy);
-          if (z.re > limit || z.im > limit) {
+          if (Math.sqrt(Math.pow(z.re, 2) + Math.pow(z.im, 2)) > limit) {
             boundaryPoints.push({x, y, value: z.re + z.im});
             break;
           }
@@ -166,6 +217,12 @@
       }
     }
     return boundaryPoints;
+  }
+
+  function roundNumber(n) {
+    return parseFloat(
+      Math.round(n * 100) / 100 + ''
+    ).toFixed(2);
   }
 
 </script>
