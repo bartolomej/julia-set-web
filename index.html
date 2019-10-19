@@ -38,8 +38,28 @@
         with respect to a hyper parameter <i>c</i>.
     </p>
     <p>
-        Fractal is computed with a function
+        Points represent initial parameters to a function
         \(f_c(z) = {z^2 + c}\)
+        where values quickly explode to infinity after iteration.
+        <br>
+        Those are called unstable points.
+    </p>
+    <p>
+        Example path is visualized from point <i>A</i> as initial input to function above.
+        <br>
+        Path represents the steps after each iteration.
+    </p>
+    <p>
+        If you move point <i>A</i> to a dotted zone, you will see that the path doesn't
+        converge to the center (point x=0, y=0), but instead goes to infinity.
+    </p>
+    <p>
+        Also try moving point <i>C</i> to change the hyper parameter and see how the fractal changes.
+    </p>
+    <p>
+        <a href="https://www.youtube.com/watch?v=FFftmWSzgmk&t=382s">
+            More about fractals from Numberphile.
+        </a>
     </p>
 </div>
 <div id="outputs">
@@ -96,16 +116,6 @@
       let absC = plot.toAbsoluteCoords(Cx, Cy);
       let absMouse = plot.toAbsoluteCoords(mouseX, mouseY);
 
-      s.fill(0);
-      s.textStyle(s.NORMAL);
-      s.textSize(15);
-      s.text(`${roundNumber(Ax)} + ${roundNumber(Ay)}i`, absA.x + 10, absA.y + 10);
-      s.ellipse(absA.x, absA.y, 15);
-
-      s.text(`${roundNumber(Cx)} + ${roundNumber(Cy)}i`, absC.x + 10, absC.y + 10);
-      s.ellipse(absC.x, absC.y, 15);
-
-
       let dA = Math.sqrt(
         Math.pow(absMouse.x - absA.x, 2) +
         Math.pow(absMouse.y - absA.y, 2)
@@ -144,6 +154,7 @@
 
       drawEquation(Ax, Ay, Cx, Cy);
 
+      // draws path of sequence
       for (let i = 0; i < maxIterations; i++) {
         let z1 = z.pow(2).add(Cx, Cy);
         let r0 = plot.toAbsoluteCoords(z.re, z.im);
@@ -154,6 +165,28 @@
         z = z1;
       }
 
+      // draws emphasized points
+      s.fill(0);
+      s.textStyle(s.NORMAL);
+      s.textSize(15);
+      s.text(`A (${roundNumber(Ax)}, ${roundNumber(Ay)})`, absA.x + 10, absA.y + 10);
+      if (dragA) {
+        s.fill(200, 0, 0);
+        s.ellipse(absA.x, absA.y, 20);
+        s.fill(0);
+      } else {
+        s.ellipse(absA.x, absA.y, 20);
+      }
+      s.text(`C (${roundNumber(Cx)}, ${roundNumber(Cy)})`, absC.x + 10, absC.y + 10);
+      if (dragC) {
+        s.fill(200, 0, 0);
+        s.ellipse(absC.x, absC.y, 20);
+        s.fill(0);
+      } else {
+        s.ellipse(absC.x, absC.y, 20);
+      }
+
+      // draws unstable discrete points
       s.fill(100);
       s.stroke(100);
       let boundary = getBoundary(plot.max, Cx, Cy);

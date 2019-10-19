@@ -2,6 +2,10 @@ function Cartesian ({
                       parentId, origin, max, interval, drawLines,
                       drawNumbers = false, drawAbscissa = true, drawOrdinate = true, showMouseCoords = true
 }) {
+  const MOUSE_STATES = { UP: 0, DOWN: 1 };
+  const MOUSE_STATES_STRING = ['UP', 'DOWN'];
+
+
   this.elementId = parentId;
   this.canvas = null;
   this.element = document.getElementById(parentId);
@@ -9,9 +13,6 @@ function Cartesian ({
   this.origin = origin
     ? origin
     : { x: this.size.width / 2, y: this.size.height / 2 };
-
-  const MOUSE_STATES = { UP: 0, DOWN: 1 };
-  const MOUSE_STATES_STRING = ['UP', 'DOWN'];
   this.mouseState = 0;
   this.absoluteMousePos = {};
   this.relativeMousePos = {};
@@ -30,6 +31,11 @@ function Cartesian ({
   this.drawOrdinate = drawOrdinate;
   this.showMouseCoords = showMouseCoords;
 
+
+  /**
+   * Get current mouse state;
+   * @returns {string}['UP'|'DOWN']
+   */
   this.getMouseState = function () {
     return MOUSE_STATES_STRING[this.mouseState]
   };
