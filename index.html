@@ -8,17 +8,25 @@
             padding: 0;
             margin: 0;
         }
+
         #plotContainer {
             display: flex;
             flex: 1;
         }
+
+        #modal {
+            display: none;
+        }
+
         #modal h1 {
             text-align: center;
             padding: 10px;
         }
+
         #modal p {
             padding: 5px;
         }
+
         #outputs {
             padding: 20px;
             position: fixed;
@@ -76,16 +84,15 @@
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css"/>
 <script>
-
-  $("#modal").modal({
-    //fadeDuration: 500,
-    //fadeDelay: 0.50
-  });
 
   let plot;
   window.onload = function () {
+    $("#modal").modal({
+      fadeDuration: 500,
+    });
+    document.getElementById('modal').style.display = 'unset';
     document.getElementById('plotContainer').style.height = window.innerHeight + 'px';
     document.getElementById('plotContainer').style.width = window.innerWidth + 'px';
 
@@ -95,8 +102,7 @@
     let Ay = Math.random();
     let Cx = 0;
     let Cy = 0;
-    let boundrySet = [];
-    let maxIterations = 100;
+    let maxIterations = 50;
     plot = new Cartesian({
       parentId: 'plotContainer',
       max: 1.2,
@@ -189,18 +195,20 @@
       // draws unstable discrete points
       s.fill(100);
       s.stroke(100);
-      let boundary = getBoundary(plot.max, Cx, Cy);
-      for (let i = 0; i < boundary.length; i++) {
-        let abs = plot.toAbsoluteCoords(boundary[i].x, boundary[i].y);
-        s.ellipse(abs.x, abs.y, 5);
+      let { boundaryPoints, minValue, maxValue } = getBoundary(plot.max, Cx, Cy);
+      let scalingFactor = 255 / maxValue;
+      for (let i = 0; i < boundaryPoints.length; i++) {
+        let abs = plot.toAbsoluteCoords(boundaryPoints[i].x, boundaryPoints[i].y);
+        let color = boundaryPoints[i].value * scalingFactor;
+        s.ellipse(abs.x, abs.y, 6);
+        s.fill(0, color*4, 100);
+        s.stroke(0, color*4, 100);
       }
-      s.fill(0);
-      s.stroke(0);
     })
   };
 
   function drawEquation (Ax, Ay, Cx, Cy) {
-    let {re, im} = new Complex(Ax, Ay).add(Cx, Cy);
+    let { re, im } = new Complex(Ax, Ay).add(Cx, Cy);
     remove('equationBox');
     remove('cParamBox');
     remove('aParamBox');
@@ -209,7 +217,7 @@
     createTextNode('aParamBox', `A = ${roundNumber(Ax)} + ${roundNumber(Ay)}i`);
     createTextNode('cParamBox', `c = ${roundNumber(Cx)} + ${roundNumber(Cy)}i`);
 
-    function createTextNode(id, text) {
+    function createTextNode (id, text) {
       let br = document.createElement('br');
       br.setAttribute('id', id + '_break');
       let box = document.createElement('span');
@@ -220,6 +228,7 @@
       document.getElementById('outputs').appendChild(box);
       document.getElementById('outputs').appendChild(br);
     }
+
     function remove (id) {
       let node = document.getElementById(id);
       let br = document.getElementById(id + '_break');
@@ -232,27 +241,32 @@
     }
   }
 
-  function getBoundary(max, Cx, Cy) {
-    const step = 0.04;
-    const limit = 5;
+  function getBoundary (max, Cx, Cy) {
+    const step = 0.05;
+    const limit = 10;
     const iterations = 10;
     let boundaryPoints = [];
+    let maxValue = 0;
+    let minValue = Number.POSITIVE_INFINITY;
     for (let x = -max.x; x < max.x; x += step) {
       for (let y = -max.y; y < max.y; y += step) {
         let z = new Complex(x, y);
         for (let i = 0; i < iterations; i++) {
           z = z.pow(2).add(Cx, Cy);
-          if (Math.sqrt(Math.pow(z.re, 2) + Math.pow(z.im, 2)) > limit) {
-            boundaryPoints.push({x, y, value: z.re + z.im});
+          let value = Math.sqrt(Math.pow(z.re, 2) + Math.pow(z.im, 2));
+          if (value < minValue) minValue = value;
+          if (value > maxValue) maxValue = value;
+          if (value > limit) {
+            boundaryPoints.push({ x, y, value });
             break;
           }
         }
       }
     }
-    return boundaryPoints;
+    return { boundaryPoints, minValue, maxValue };
   }
 
-  function roundNumber(n) {
+  function roundNumber (n) {
     return parseFloat(
       Math.round(n * 100) / 100 + ''
     ).toFixed(2);
